@@ -1,19 +1,17 @@
 import { Hono } from 'hono'
-import { Env } from './types'
+import type { Env } from './types'
 import { drizzle } from 'drizzle-orm/node-postgres'
+import restaurantsRouter from './routes/restaurants'
 
-const app = new Hono<Env>().basePath('/api')
+const app = new Hono<Env>()
+  .basePath('/api')
+  .use('*', async (c, next) => {
+    const connectionString = c.env.HYPERDRIVE.connectionString
+    c.set('db', drizzle(connectionString))
+    await next()
+  })
+  .route('/restaurants', restaurantsRouter)
 
-app.use('*', async (c, next) => {
-  const connectionString = c.env.HYPERDRIVE.connectionString
-  c.set('db', drizzle(connectionString))
-  await next()
-})
+export type AppType = typeof app
 
-const routes = app.get('/', (c) => {
-  return c.text('Hello, world!')
-})
-
-export type AppType = typeof routes
-
-export default routes
+export default app
