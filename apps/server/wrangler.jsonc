@@ -2,5 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "server",
   "compatibility_date": "2025-08-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "2c7d35fdfe31478a8903d4117ce93dfb",
+      "localConnectionString": "postgresql://postgres:password@localhost:5432/best-order",
+    },
+  ],
   "main": "./src/index.ts",
 }
