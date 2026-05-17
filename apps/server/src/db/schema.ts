@@ -1,4 +1,5 @@
-import { pgTable, serial, text, doublePrecision, integer } from 'drizzle-orm/pg-core'
+import { relations } from 'drizzle-orm'
+import { pgTable, serial, text, doublePrecision, integer, unique } from 'drizzle-orm/pg-core'
 
 export const restaurants = pgTable('restaurants', {
   id: serial('id').primaryKey(),
@@ -11,11 +12,26 @@ export const restaurants = pgTable('restaurants', {
   memo: text('memo').notNull(),
 })
 
-export const restaurantPhotos = pgTable('restaurant_photos', {
-  id: serial('id').primaryKey(),
-  url: text('url').notNull(),
+export const restaurantPhotos = pgTable(
+  'restaurant_photos',
+  {
+    id: serial('id').primaryKey(),
+    url: text('url').notNull(),
+    restaurantId: integer('restaurant_id')
+      .notNull()
+      .references(() => restaurants.id, { onDelete: 'cascade' }),
+    sortOrder: integer('sort_order').notNull(),
+  },
+  (table) => [unique('unique_order_per_restaurant').on(table.restaurantId, table.sortOrder)],
+)
 
-  restaurantId: integer('restaurant_id')
-    .notNull()
-    .references(() => restaurants.id, { onDelete: 'cascade' }),
-})
+export const restaurantsRelations = relations(restaurants, ({ many }) => ({
+  photos: many(restaurantPhotos),
+}))
+
+export const photosRelations = relations(restaurantPhotos, ({ one }) => ({
+  restaurant: one(restaurants, {
+    fields: [restaurantPhotos.restaurantId],
+    references: [restaurants.id],
+  }),
+}))

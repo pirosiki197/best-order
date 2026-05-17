@@ -4,11 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 function Home() {
-  const {
-    data: restaurants,
-    isPending,
-    error,
-  } = useQuery({
+  const { data, isPending, error } = useQuery({
     queryKey: ['restaurants'],
     queryFn: async () => {
       const res = await client.api.restaurants.$get()
@@ -22,7 +18,7 @@ function Home() {
   return (
     <main className="p-3">
       <div className="mx-3 grid grid-cols-1 gap-3">
-        {restaurants.result.map((r) => (
+        {data.result.map((r) => (
           <Link to={`/restaurants/${r.id}`}>
             <RestaurantCard key={r.id} restaurant={r} />
           </Link>

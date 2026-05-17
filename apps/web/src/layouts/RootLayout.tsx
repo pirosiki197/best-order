@@ -7,7 +7,7 @@ function RootLayout() {
     <div className="bg-background">
       <Header />
 
-      <div className="min-h-screen pb-15">
+      <div className="mx-auto min-h-screen max-w-2xl pb-15">
         <Outlet />
       </div>
 

@@ -1,4 +1,5 @@
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import * as schema from './db/schema'
 
 export type Env = {
   Bindings: {
@@ -8,6 +9,6 @@ export type Env = {
     }
   }
   Variables: {
-    db: PostgresJsDatabase
+    db: NodePgDatabase<typeof schema>
   }
 }
