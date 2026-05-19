@@ -19,8 +19,8 @@ function Home() {
     <main className="p-3">
       <div className="mx-3 grid grid-cols-1 gap-3">
         {data.result.map((r) => (
-          <Link to={`/restaurants/${r.id}`}>
-            <RestaurantCard key={r.id} restaurant={r} />
+          <Link key={r.id} to={`/restaurants/${r.id}`}>
+            <RestaurantCard restaurant={r} />
           </Link>
         ))}
       </div>

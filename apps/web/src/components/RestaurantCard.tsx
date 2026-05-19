@@ -15,7 +15,7 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
     <Card className="overflow-hidden">
       <div className="relative aspect-16/10 overflow-hidden">
         <img
-          src={restaurant.mainPhotoUrl || 'TODO: default image'}
+          src={restaurant.mainPhotoUrl || 'https://media.pirosiki197.net/noimage.png'}
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-4">

@@ -28,11 +28,14 @@ function RestaurantPage() {
   if (isPending) return <div>読み込み中...</div>
   if (error) return <div>エラー発生!</div>
 
-  const mainPhotoUrl = restaurant.photos.length > 0 ? restaurant.photos[0].url : 'default image url'
+  const mainPhotoUrl =
+    restaurant.photos.length > 0
+      ? restaurant.photos[0].url
+      : 'https://media.pirosiki197.net/noimage.png'
 
   return (
     <main>
-      <div className="relative aspect-16/10 overflow-hidden rounded-b-sm">
+      <div className="relative aspect-16/10 overflow-hidden">
         <img src={mainPhotoUrl} className="h-full w-full object-cover" />
         <div className="absolute inset-x-0 right-0 bottom-0 left-0 bg-linear-to-t from-black/70 to-transparent p-4">
           <Badge className="mb-2 bg-white/20 text-white backdrop-blur-sm">{restaurant.genre}</Badge>
