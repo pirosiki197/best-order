@@ -2,7 +2,7 @@
   "name": "server",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --env dev",
     "build": "tsc --noEmit",
     "lint": "eslint .",
     "deploy": "wrangler deploy",
@@ -17,6 +17,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260519.1",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
     "wrangler": "^4.17.0"

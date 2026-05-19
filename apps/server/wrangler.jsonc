@@ -3,6 +3,13 @@
   "name": "server",
   "compatibility_date": "2025-08-03",
   "compatibility_flags": ["nodejs_compat"],
+  "main": "./src/index.ts",
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "best-order",
+    },
+  ],
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
@@ -10,5 +17,22 @@
       "localConnectionString": "postgresql://postgres:password@localhost:5432/best-order",
     },
   ],
-  "main": "./src/index.ts",
+  "vars": {
+    "R2_PUBLIC_URL": "https://media.pirosiki197.net",
+  },
+  "env": {
+    "dev": {
+      "r2_buckets": [
+        {
+          "binding": "R2",
+          "bucket_name": "best-order-dev",
+          "remote": true,
+        },
+      ],
+      "vars": {
+        "R2_PUBLIC_URL": "https://pub-fc14875b21f843748312e56872f53dab.r2.dev",
+        "DATABASE_URL": "postgresql://postgres:password@localhost:5432/best-order",
+      },
+    },
+  },
 }

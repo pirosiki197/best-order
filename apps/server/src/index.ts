@@ -7,7 +7,7 @@ import * as schema from './db/schema'
 const app = new Hono<Env>()
   .basePath('/api')
   .use('*', async (c, next) => {
-    const connectionString = c.env.HYPERDRIVE.connectionString
+    const connectionString = c.env.HYPERDRIVE?.connectionString || c.env.DATABASE_URL
     c.set('db', drizzle(connectionString, { schema }))
     await next()
   })
