@@ -3,7 +3,13 @@ services:
     image: postgres:18
     ports:
       - 5432:5432
+    shm_size: 128mb
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: best-order
+    volumes:
+      - postgresql:/var/lib/postgresql
+
+volumes:
+  postgresql:
