@@ -32,6 +32,7 @@ function RestaurantPage() {
     restaurant.photos.length > 0
       ? restaurant.photos[0].url
       : 'https://media.pirosiki197.net/noimage.png'
+  const googleMapUrl = `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${restaurant.placeId}`
 
   return (
     <main>
@@ -49,7 +50,12 @@ function RestaurantPage() {
         </div>
 
         <Button asChild variant={'outline'}>
-          <a target="_black" rel="noopener noreferrer" className="flex items-center gap-2">
+          <a
+            href={googleMapUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2"
+          >
             <ExternalLink height={1} width={1} />
             <p>Google Map</p>
           </a>
