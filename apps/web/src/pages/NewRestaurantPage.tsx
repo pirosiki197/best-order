@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { StarRating } from '@/components/StarRating'
 import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { X, Camera } from 'lucide-react'
 
 function NewRestaurantPage() {
   const navigate = useNavigate()
@@ -26,6 +27,20 @@ function NewRestaurantPage() {
     const files = Array.from(e.target.files)
 
     setPhotos((prev) => [...prev, ...files])
+  }
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+
+    if (e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files)
+      const imageFiles = files.filter((file) => file.type.startsWith('image/'))
+      setPhotos((prev) => [...prev, ...imageFiles])
+    }
   }
 
   const handleSubmit = async (e: React.SubmitEvent) => {
@@ -59,7 +74,7 @@ function NewRestaurantPage() {
   return (
     <div className="m-5 flex flex-col gap-6">
       <div>
-        <h1 className="mb text-xl font-bold">新しいお店を追加</h1>
+        <h1 className="text-xl font-bold">新しいお店を追加</h1>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -115,7 +130,54 @@ function NewRestaurantPage() {
 
               <Field>
                 <FieldLabel>写真</FieldLabel>
-                <Input type="file" multiple accept="image/*" onChange={handlePhotoChange} />
+                <input
+                  type="file"
+                  id="photo-upload"
+                  multiple
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="sr-only"
+                />
+
+                <div className="grid grid-cols-3 gap-2">
+                  {photos.map((photo, index) => {
+                    const previewUrl = URL.createObjectURL(photo)
+                    return (
+                      <div
+                        key={index}
+                        className="relative aspect-square overflow-hidden rounded-lg"
+                      >
+                        <img
+                          src={previewUrl}
+                          className="h-full w-full object-cover"
+                          onLoad={() => URL.revokeObjectURL(previewUrl)}
+                        />
+                        <span className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 font-mono text-xs text-white">
+                          #{index + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleRemovePhoto(index)}
+                          className="absolute top-1 right-1 bg-black/60 text-white hover:bg-black"
+                        >
+                          <X width={3} height={3} />
+                        </Button>
+                      </div>
+                    )
+                  })}
+                  <label
+                    htmlFor="photo-upload"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleDrop}
+                    className="border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/60 w-full cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
+                  >
+                    <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-1.5">
+                      <Camera />
+                      <p className="text-sm">写真を追加</p>
+                    </div>
+                  </label>
+                </div>
               </Field>
 
               <Field>

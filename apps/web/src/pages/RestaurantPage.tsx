@@ -62,14 +62,16 @@ function RestaurantPage() {
         </Button>
 
         <div className="mt-4 flex snap-x snap-mandatory scrollbar-none gap-2 overflow-x-auto pb-4">
-          {restaurant.photos.map((photo) => (
-            <div
-              key={photo.id}
-              className="aspect-4/3 w-[85vw] shrink-0 snap-center overflow-hidden rounded-xl md:w-100"
-            >
-              <img src={`/api/photos/${photo.filename}`} className="h-full w-full object-cover" />
-            </div>
-          ))}
+          {restaurant.photos
+            .filter((_, i) => i !== 0)
+            .map((photo) => (
+              <div
+                key={photo.id}
+                className="aspect-4/3 w-[85vw] shrink-0 snap-center overflow-hidden rounded-xl md:w-100"
+              >
+                <img src={`/api/photos/${photo.filename}`} className="h-full w-full object-cover" />
+              </div>
+            ))}
         </div>
       </div>
     </main>
