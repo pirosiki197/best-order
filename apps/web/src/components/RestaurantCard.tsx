@@ -7,7 +7,7 @@ type Restaurant = {
   genre: string
   rating: number
   memo: string
-  mainPhotoUrl: string | null
+  mainPhotoFilename: string | null
 }
 
 function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
@@ -15,7 +15,11 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
     <Card className="overflow-hidden">
       <div className="relative aspect-16/10 overflow-hidden">
         <img
-          src={restaurant.mainPhotoUrl || 'https://media.pirosiki197.net/noimage.png'}
+          src={
+            restaurant.mainPhotoFilename
+              ? `/api/photos/${restaurant.mainPhotoFilename}`
+              : 'https://media.pirosiki197.net/noimage.png'
+          }
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-4">

@@ -44,7 +44,7 @@ const restaurantsRouter = new Hono<Env>()
         genre: restaurants.genre,
         rating: restaurants.rating,
         memo: restaurants.memo,
-        mainPhotoUrl: restaurantPhotos.url,
+        mainPhotoFilename: restaurantPhotos.filename,
       })
       .from(restaurants)
       .leftJoin(
@@ -97,7 +97,7 @@ const restaurantsRouter = new Hono<Env>()
 
       await db.insert(restaurantPhotos).values({
         restaurantId: id,
-        url: `${c.env.R2_PUBLIC_URL}/${filename}`,
+        filename: filename,
         sortOrder: sortOrder,
       })
 

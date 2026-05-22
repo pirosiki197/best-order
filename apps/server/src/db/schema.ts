@@ -16,7 +16,7 @@ export const restaurantPhotos = pgTable(
   'restaurant_photos',
   {
     id: serial('id').primaryKey(),
-    url: text('url').notNull(),
+    filename: text('filename').notNull(),
     restaurantId: integer('restaurant_id')
       .notNull()
       .references(() => restaurants.id, { onDelete: 'cascade' }),

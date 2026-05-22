@@ -30,7 +30,7 @@ function RestaurantPage() {
 
   const mainPhotoUrl =
     restaurant.photos.length > 0
-      ? restaurant.photos[0].url
+      ? `/api/photos/${restaurant.photos[0].filename}`
       : 'https://media.pirosiki197.net/noimage.png'
   const googleMapUrl = `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${restaurant.placeId}`
 
@@ -67,7 +67,7 @@ function RestaurantPage() {
               key={photo.id}
               className="aspect-4/3 w-[85vw] shrink-0 snap-center overflow-hidden rounded-xl md:w-100"
             >
-              <img src={photo.url} className="h-full w-full object-cover" />
+              <img src={`/api/photos/${photo.filename}`} className="h-full w-full object-cover" />
             </div>
           ))}
         </div>

@@ -2,7 +2,7 @@
   "name": "server",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --env dev",
+    "dev": "wrangler dev",
     "build": "tsc --noEmit",
     "lint": "eslint .",
     "deploy": "wrangler deploy",
