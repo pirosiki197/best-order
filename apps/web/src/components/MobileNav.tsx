@@ -7,7 +7,7 @@ const navItems = [
 
 function MobileNav() {
   return (
-    <nav className="border-border bg-card fixed right-0 bottom-0 left-0 z-50 border-t py-2">
+    <nav className="border-border bg-background/75 fixed right-0 bottom-0 left-0 z-50 border-t py-2">
       <div className="flex items-center justify-around">
         {navItems.map((item) => (
           <Link
