@@ -1,4 +1,5 @@
 import RestaurantCard from '@/components/RestaurantCard'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { client } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -17,13 +18,21 @@ function Home() {
 
   return (
     <main className="p-3">
-      <div className="mx-3 grid grid-cols-1 gap-3">
-        {data.result.map((r) => (
-          <Link key={r.id} to={`/restaurants/${r.id}`}>
-            <RestaurantCard restaurant={r} />
-          </Link>
-        ))}
-      </div>
+      {data.result.length === 0 ? (
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>お店が登録されていません</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className="mx-3 grid grid-cols-1 gap-3">
+          {data.result.map((r) => (
+            <Link key={r.id} to={`/restaurants/${r.id}`}>
+              <RestaurantCard restaurant={r} />
+            </Link>
+          ))}
+        </div>
+      )}
     </main>
   )
 }
