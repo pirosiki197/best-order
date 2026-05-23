@@ -72,7 +72,7 @@ function NewRestaurantPage() {
   }
 
   return (
-    <div className="m-5 flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-5">
       <div>
         <h1 className="text-xl font-bold">新しいお店を追加</h1>
       </div>
@@ -161,7 +161,7 @@ function NewRestaurantPage() {
                           onClick={() => handleRemovePhoto(index)}
                           className="absolute top-1 right-1 bg-black/60 text-white hover:bg-black"
                         >
-                          <X width={3} height={3} />
+                          <X className="h-3 w-3" />
                         </Button>
                       </div>
                     )
@@ -170,7 +170,7 @@ function NewRestaurantPage() {
                     htmlFor="photo-upload"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
-                    className="border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/60 w-full cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
+                    className="border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/60 aspect-square w-full cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
                   >
                     <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-1.5">
                       <Camera />

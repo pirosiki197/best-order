@@ -4,10 +4,10 @@ import { Outlet } from 'react-router-dom'
 
 function RootLayout() {
   return (
-    <div className="bg-background">
+    <div className="bg-background pb-15">
       <Header />
 
-      <div className="mx-auto min-h-screen max-w-2xl pb-15">
+      <div className="mx-auto min-h-screen max-w-2xl">
         <Outlet />
       </div>
 
