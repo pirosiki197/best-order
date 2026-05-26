@@ -1,3 +1,17 @@
 [tools]
 node = "24"
 pnpm = "10"
+
+[tasks."db:up"]
+description = "Start PostgreSQL container"
+run = "docker compose up -d"
+
+[tasks.migrate]
+description = "Apply database schema via drizzle-kit"
+depends = ["db:up"]
+run = "pnpm --filter server exec drizzle-kit push"
+
+[tasks.dev]
+description = "Start entire development environment"
+depends = ["migrate"]
+run = "pnpm run dev"
