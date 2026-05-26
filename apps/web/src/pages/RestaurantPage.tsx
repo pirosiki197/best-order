@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { client } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
-import { ExternalLink, Trash2 } from 'lucide-react'
+import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 function RestaurantPage() {
@@ -92,7 +92,7 @@ function RestaurantPage() {
             rel="noopener noreferrer"
             className="flex items-center gap-2"
           >
-            <ExternalLink height={1} width={1} />
+            <ExternalLink className="h-4 w-4" />
             <p>Google Map</p>
           </a>
         </Button>
@@ -110,6 +110,16 @@ function RestaurantPage() {
             ))}
         </div>
 
+        <Button
+          type="button"
+          variant={'outline'}
+          onClick={() => navigate(`/restaurants/${restaurant.id}/edit`)}
+          className="flex items-center gap-2"
+        >
+          <Pencil className="h-4 w-4" />
+          <p>編集</p>
+        </Button>
+
         <Dialog
           open={deleteOpen}
           onOpenChange={(open) => {
@@ -119,7 +129,7 @@ function RestaurantPage() {
         >
           <DialogTrigger asChild>
             <Button variant="destructive" className="w-full">
-              <Trash2 />
+              <Trash2 className="h-4 w-4" />
               削除
             </Button>
           </DialogTrigger>

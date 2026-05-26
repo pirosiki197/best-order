@@ -4,6 +4,7 @@ import RootLayout from './layouts/RootLayout'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import RestaurantPage from './pages/RestaurantPage'
 import NewRestaurantPage from './pages/NewRestaurantPage'
+import EditRestaurantPage from './pages/EditRestaurantPage'
 import { APIProvider } from '@vis.gl/react-google-maps'
 
 const queryClient = new QueryClient()
@@ -18,6 +19,7 @@ function App() {
             <Route element={<RootLayout />}>
               <Route path="/" element={<Home />} />
               <Route path="/restaurants/:id" element={<RestaurantPage />} />
+              <Route path="/restaurants/:id/edit" element={<EditRestaurantPage />} />
               <Route path="/restaurants/new" element={<NewRestaurantPage />} />
             </Route>
           </Routes>

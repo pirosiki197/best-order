@@ -3,7 +3,7 @@ import type { Env } from '../types'
 import { restaurantPhotos, restaurants } from '../db/schema'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -33,7 +33,21 @@ const uploadPhotoSchema = z.object({
     }),
   sortOrder: z.coerce.number().int(),
 })
+
+const setRestaurantPhotosSchema = z
+  .array(
+    z.object({
+      id: z.number(),
+      sortOrder: z.number().int().nonnegative(),
+    }),
+  )
+  .max(30)
+
 const restaurantIdSchema = z.object({ id: z.coerce.number() })
+const updateRestaurantSchema = createRestaurantSchema
+  .pick({ name: true, genre: true, rating: true, memo: true })
+  .partial()
+  .strict()
 
 const restaurantsRouter = new Hono<Env>()
   .get('/', async (c) => {
@@ -79,6 +93,43 @@ const restaurantsRouter = new Hono<Env>()
 
     return c.json(restaurantDetail)
   })
+  .patch(
+    '/:id',
+    zValidator('param', restaurantIdSchema),
+    zValidator('json', updateRestaurantSchema),
+    async (c) => {
+      const db = c.get('db')
+      const { id } = c.req.valid('param')
+      const req = c.req.valid('json')
+
+      const updateValues = {
+        name: req.name,
+        genre: req.genre,
+        rating: req.rating,
+        memo: req.memo,
+      }
+
+      const cleanValues = Object.fromEntries(
+        Object.entries(updateValues).filter(([, v]) => v !== undefined),
+      )
+
+      if (Object.keys(cleanValues).length === 0) {
+        return c.json({ message: 'No fields to update' }, 400)
+      }
+
+      const [updatedRestaurant] = await db
+        .update(restaurants)
+        .set(cleanValues)
+        .where(eq(restaurants.id, id))
+        .returning()
+
+      if (!updatedRestaurant) {
+        return c.json({ message: 'Restaurant not found' }, 404)
+      }
+
+      return c.json(updatedRestaurant)
+    },
+  )
   .delete('/:id', zValidator('param', restaurantIdSchema), async (c) => {
     const db = c.get('db')
     const { id } = c.req.valid('param')
@@ -108,6 +159,81 @@ const restaurantsRouter = new Hono<Env>()
 
     return c.json({ success: true })
   })
+  .put(
+    '/:id/photos',
+    zValidator('param', restaurantIdSchema),
+    zValidator('json', setRestaurantPhotosSchema),
+    async (c) => {
+      const db = c.get('db')
+      const { id: restaurantId } = c.req.valid('param')
+      const req = c.req.valid('json')
+
+      const sortOrders = req.map((item) => item.sortOrder)
+      const photoIds = req.map((item) => item.id)
+      if (new Set(sortOrders).size !== req.length) {
+        return c.json({ message: 'Duplicate sortOrder' }, 400)
+      }
+      if (new Set(photoIds).size !== req.length) {
+        return c.json({ message: 'Duplicate photo id' }, 400)
+      }
+
+      const restaurant = await db.query.restaurants.findFirst({
+        where: eq(restaurants.id, restaurantId),
+        columns: { id: true },
+      })
+      if (!restaurant) return c.json({ message: 'Restaurant not found' }, 404)
+
+      if (photoIds.length > 0) {
+        const rows = await db
+          .select({ id: restaurantPhotos.id, restaurantId: restaurantPhotos.restaurantId })
+          .from(restaurantPhotos)
+          .where(inArray(restaurantPhotos.id, photoIds))
+
+        if (rows.length !== photoIds.length) {
+          return c.json({ message: 'Photo not found' }, 400)
+        }
+
+        const conflict = rows.find(
+          (r) => r.restaurantId !== null && r.restaurantId !== restaurantId,
+        )
+        if (conflict) {
+          return c.json({ message: 'Photo id is already attached to another restaurant' }, 409)
+        }
+      }
+
+      await db.transaction(async (tx) => {
+        const current = await tx
+          .select({ id: restaurantPhotos.id })
+          .from(restaurantPhotos)
+          .where(eq(restaurantPhotos.restaurantId, restaurantId))
+
+        const currentPhotoIds = current.map((item) => item.id)
+        const desiredSet = new Set(photoIds)
+        const removedPhotoIds = currentPhotoIds.filter((pid) => !desiredSet.has(pid))
+
+        await tx
+          .update(restaurantPhotos)
+          .set({ sortOrder: null })
+          .where(eq(restaurantPhotos.restaurantId, restaurantId))
+
+        if (removedPhotoIds.length > 0) {
+          await tx
+            .update(restaurantPhotos)
+            .set({ restaurantId: null, sortOrder: null })
+            .where(inArray(restaurantPhotos.id, removedPhotoIds))
+        }
+
+        for (const item of req) {
+          await tx
+            .update(restaurantPhotos)
+            .set({ restaurantId, sortOrder: item.sortOrder })
+            .where(eq(restaurantPhotos.id, item.id))
+        }
+      })
+
+      return c.json({ success: true })
+    },
+  )
   .post(
     '/:id/photos',
     zValidator('param', restaurantIdSchema),

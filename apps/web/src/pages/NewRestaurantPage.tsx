@@ -2,12 +2,9 @@ import React, { useState } from 'react'
 import { client } from '@/lib/api'
 import { useNavigate } from 'react-router-dom'
 import PlaceSearchInput from '@/components/PlaceSearchInput'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { StarRating } from '@/components/StarRating'
-import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
-import { X, Camera } from 'lucide-react'
+import { Field, FieldGroup, FieldLegend, FieldSet } from '@/components/ui/field'
+import { RestaurantFields, type DisplayPhotoItem } from '@/components/RestaurantFormFields'
 
 function NewRestaurantPage() {
   const navigate = useNavigate()
@@ -20,28 +17,7 @@ function NewRestaurantPage() {
     memo: '',
     rating: 0,
   })
-  const [photos, setPhotos] = useState<File[]>([])
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return
-    const files = Array.from(e.target.files)
-
-    setPhotos((prev) => [...prev, ...files])
-  }
-
-  const handleRemovePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-
-    if (e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files)
-      const imageFiles = files.filter((file) => file.type.startsWith('image/'))
-      setPhotos((prev) => [...prev, ...imageFiles])
-    }
-  }
+  const [photos, setPhotos] = useState<DisplayPhotoItem[]>([])
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault()
@@ -53,17 +29,28 @@ function NewRestaurantPage() {
       if (!res.ok) throw new Error('failed to create')
       const data = await res.json()
 
-      await Promise.all(
-        photos.map((photo, index) => {
-          return client.api.restaurants[':id'].photos.$post({
-            param: { id: data.id.toString() },
-            form: {
-              photo,
-              sortOrder: index.toString(),
-            },
-          })
-        }),
+      const uploadedPhotoIds = await Promise.all(
+        photos
+          .filter(
+            (p): p is DisplayPhotoItem & { origin: { type: 'new' } } => p.origin.type === 'new',
+          )
+          .map(async (photo) => {
+            const uploadRes = await client.api.photos.$post({
+              form: { photo: photo.origin.file },
+            })
+            if (!uploadRes.ok) throw new Error('failed to upload photo')
+            const uploadData = await uploadRes.json()
+            return uploadData.id
+          }),
       )
+
+      if (uploadedPhotoIds.length > 0) {
+        const setRes = await client.api.restaurants[':id'].photos.$put({
+          param: { id: data.id.toString() },
+          json: uploadedPhotoIds.map((id, index) => ({ id, sortOrder: index })),
+        })
+        if (!setRes.ok) throw new Error('failed to set restaurant photos')
+      }
 
       navigate(`/restaurants/${data.id}`)
     } catch (error) {
@@ -101,94 +88,17 @@ function NewRestaurantPage() {
           <FieldSet>
             <FieldLegend>2. 詳細情報を入力</FieldLegend>
             <FieldGroup>
-              <Field>
-                <FieldLabel>アプリでの表示名</FieldLabel>
-                <Input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel>ジャンル</FieldLabel>
-                <Input
-                  type="text"
-                  placeholder="例: ラーメン、イタリアン"
-                  value={formData.genre}
-                  onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel>評価</FieldLabel>
-                <StarRating
-                  value={formData.rating}
-                  onChange={(newRating) => setFormData({ ...formData, rating: newRating })}
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel>写真</FieldLabel>
-                <input
-                  type="file"
-                  id="photo-upload"
-                  multiple
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="sr-only"
-                />
-
-                <div className="grid grid-cols-3 gap-2">
-                  {photos.map((photo, index) => {
-                    const previewUrl = URL.createObjectURL(photo)
-                    return (
-                      <div
-                        key={index}
-                        className="relative aspect-square overflow-hidden rounded-lg"
-                      >
-                        <img
-                          src={previewUrl}
-                          className="h-full w-full object-cover"
-                          onLoad={() => URL.revokeObjectURL(previewUrl)}
-                        />
-                        <span className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 font-mono text-xs text-white">
-                          #{index + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => handleRemovePhoto(index)}
-                          className="absolute top-1 right-1 bg-black/60 text-white hover:bg-black"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )
-                  })}
-                  <label
-                    htmlFor="photo-upload"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={handleDrop}
-                    className="border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/60 aspect-square w-full cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
-                  >
-                    <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-1.5">
-                      <Camera />
-                      <p className="text-sm">写真を追加</p>
-                    </div>
-                  </label>
-                </div>
-              </Field>
-
-              <Field>
-                <FieldLabel>メモ</FieldLabel>
-                <Textarea
-                  value={formData.memo}
-                  placeholder="味の感想など..."
-                  onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                  rows={4}
-                />
-              </Field>
+              <RestaurantFields
+                value={{
+                  name: formData.name,
+                  genre: formData.genre,
+                  rating: formData.rating,
+                  memo: formData.memo,
+                }}
+                onChange={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
+                photos={photos}
+                onPhotosChange={setPhotos}
+              />
 
               <Field>
                 <Button type="submit">保存</Button>

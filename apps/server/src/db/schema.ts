@@ -17,10 +17,10 @@ export const restaurantPhotos = pgTable(
   {
     id: serial('id').primaryKey(),
     filename: text('filename').notNull(),
-    restaurantId: integer('restaurant_id')
-      .notNull()
-      .references(() => restaurants.id, { onDelete: 'cascade' }),
-    sortOrder: integer('sort_order').notNull(),
+    restaurantId: integer('restaurant_id').references(() => restaurants.id, {
+      onDelete: 'cascade',
+    }),
+    sortOrder: integer('sort_order'),
   },
   (table) => [uniqueIndex('unique_order_per_restaurant').on(table.restaurantId, table.sortOrder)],
 )
