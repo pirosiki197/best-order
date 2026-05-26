@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { pgTable, serial, text, doublePrecision, integer, unique } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, doublePrecision, integer, uniqueIndex } from 'drizzle-orm/pg-core'
 
 export const restaurants = pgTable('restaurants', {
   id: serial('id').primaryKey(),
@@ -22,7 +22,7 @@ export const restaurantPhotos = pgTable(
       .references(() => restaurants.id, { onDelete: 'cascade' }),
     sortOrder: integer('sort_order').notNull(),
   },
-  (table) => [unique('unique_order_per_restaurant').on(table.restaurantId, table.sortOrder)],
+  (table) => [uniqueIndex('unique_order_per_restaurant').on(table.restaurantId, table.sortOrder)],
 )
 
 export const restaurantsRelations = relations(restaurants, ({ many }) => ({
