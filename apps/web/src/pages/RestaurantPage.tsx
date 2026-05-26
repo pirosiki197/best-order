@@ -1,12 +1,27 @@
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { client } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
-import { ExternalLink } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { ExternalLink, Trash2 } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 function RestaurantPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const {
     data: restaurant,
@@ -24,6 +39,27 @@ function RestaurantPage() {
       return res.json()
     },
   })
+
+  const handleDelete = async () => {
+    if (!id) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await client.api.restaurants[':id'].$delete({
+        param: { id },
+      })
+      if (!res.ok) {
+        throw new Error('failed to delete restaurant')
+      }
+      setDeleteOpen(false)
+      navigate('/')
+    } catch (err) {
+      console.error(err)
+      setDeleteError('削除に失敗しました。時間をおいて再度お試しください。')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   if (isPending) return <div>読み込み中...</div>
   if (error) return <div>エラー発生!</div>
@@ -73,6 +109,40 @@ function RestaurantPage() {
               </div>
             ))}
         </div>
+
+        <Dialog
+          open={deleteOpen}
+          onOpenChange={(open) => {
+            setDeleteOpen(open)
+            if (open) setDeleteError(null)
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button variant="destructive" className="w-full">
+              <Trash2 />
+              削除
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>お店を削除しますか？</DialogTitle>
+              <DialogDescription>
+                写真も含めて削除されます。この操作は取り消せません。
+              </DialogDescription>
+            </DialogHeader>
+            {deleteError && <p className="text-destructive text-sm">{deleteError}</p>}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline" disabled={isDeleting}>
+                  キャンセル
+                </Button>
+              </DialogClose>
+              <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                削除する
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </main>
   )

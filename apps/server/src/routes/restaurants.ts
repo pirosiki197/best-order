@@ -33,6 +33,7 @@ const uploadPhotoSchema = z.object({
     }),
   sortOrder: z.coerce.number().int(),
 })
+const restaurantIdSchema = z.object({ id: z.coerce.number() })
 
 const restaurantsRouter = new Hono<Env>()
   .get('/', async (c) => {
@@ -61,7 +62,7 @@ const restaurantsRouter = new Hono<Env>()
 
     return c.json({ id: newRestaurant.id }, 201)
   })
-  .get('/:id', zValidator('param', z.object({ id: z.coerce.number() })), async (c) => {
+  .get('/:id', zValidator('param', restaurantIdSchema), async (c) => {
     const db = c.get('db')
     const { id } = c.req.valid('param')
 
@@ -78,9 +79,38 @@ const restaurantsRouter = new Hono<Env>()
 
     return c.json(restaurantDetail)
   })
+  .delete('/:id', zValidator('param', restaurantIdSchema), async (c) => {
+    const db = c.get('db')
+    const { id } = c.req.valid('param')
+
+    const restaurant = await db.query.restaurants.findFirst({
+      where: eq(restaurants.id, id),
+      columns: {
+        id: true,
+      },
+    })
+
+    if (!restaurant) {
+      return c.json({ message: 'Restaurant not found' }, 404)
+    }
+
+    const photos = await db
+      .select({ filename: restaurantPhotos.filename })
+      .from(restaurantPhotos)
+      .where(eq(restaurantPhotos.restaurantId, id))
+
+    await db.delete(restaurants).where(eq(restaurants.id, id))
+
+    const filenames = photos.map((photo) => photo.filename)
+    if (filenames.length > 0) {
+      await c.env.R2.delete(filenames)
+    }
+
+    return c.json({ success: true })
+  })
   .post(
     '/:id/photos',
-    zValidator('param', z.object({ id: z.coerce.number() })),
+    zValidator('param', restaurantIdSchema),
     zValidator('form', uploadPhotoSchema),
     async (c) => {
       const db = c.get('db')
