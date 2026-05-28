@@ -1,5 +1,13 @@
 import { relations } from 'drizzle-orm'
-import { pgTable, serial, text, doublePrecision, integer, uniqueIndex } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  serial,
+  text,
+  doublePrecision,
+  integer,
+  uniqueIndex,
+  timestamp,
+} from 'drizzle-orm/pg-core'
 
 export const restaurants = pgTable('restaurants', {
   id: serial('id').primaryKey(),
@@ -10,6 +18,7 @@ export const restaurants = pgTable('restaurants', {
   placeId: text('place_id').notNull(),
   rating: integer('rating').notNull(), // 1〜5
   memo: text('memo').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const restaurantPhotos = pgTable(
