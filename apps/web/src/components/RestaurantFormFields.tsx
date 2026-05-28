@@ -1,11 +1,12 @@
 import { useId } from 'react'
 import { Camera, X } from 'lucide-react'
-
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { StarRating } from '@/components/StarRating'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Button } from '@/components/ui/button'
+import imageCompression from 'browser-image-compression'
+import { client } from '@/lib/api'
 
 export type RestaurantEditableFormData = {
   name: string
@@ -15,10 +16,8 @@ export type RestaurantEditableFormData = {
 }
 
 export type DisplayPhotoItem = {
-  key: string
+  id: number
   displayUrl: string
-  sortOrder: number
-  origin: { type: 'existing'; id: number } | { type: 'new'; file: File }
 }
 
 export function RestaurantFields({
@@ -35,28 +34,47 @@ export function RestaurantFields({
   const autoId = useId()
   const fileInputId = `photo-upload-${autoId}`
 
-  const handlePhotoChange = (files: File[]) => {
-    const timestamp = Date.now()
-    const newItems: DisplayPhotoItem[] = files.map((file, i) => {
-      const previewUrl = URL.createObjectURL(file)
-      return {
-        key: `new-${timestamp}-${i}`,
-        displayUrl: previewUrl,
-        sortOrder: photos.length + i,
-        origin: { type: 'new', file },
-      }
-    })
-    onPhotosChange([...photos, ...newItems])
+  const handlePhotoChange = async (files: File[]) => {
+    try {
+      const compressedPhotos = await Promise.all(
+        files.map((f) => {
+          try {
+            return imageCompression(f, {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1024,
+              useWebWorker: true,
+              fileType: 'image/webp',
+            })
+          } catch {
+            console.error('画像の圧縮に失敗しました')
+            return f
+          }
+        }),
+      )
+      const uploadedItems = await Promise.all(
+        compressedPhotos.map(async (photo) => {
+          const res = await client.api.photos.$post({
+            form: { photo },
+          })
+          if (!res.ok) throw Error('failed to upload photo')
+          const resJson = await res.json()
+          return {
+            id: resJson.id,
+            displayUrl: URL.createObjectURL(photo),
+          }
+        }),
+      )
+      onPhotosChange([...photos, ...uploadedItems])
+    } catch {
+      console.error('画像の保存に失敗しました')
+    }
   }
 
   const handleRemovePhoto = (itemToRemove: DisplayPhotoItem) => {
-    if (itemToRemove.origin.type === 'new') {
-      URL.revokeObjectURL(itemToRemove.displayUrl)
-    }
+    URL.revokeObjectURL(itemToRemove.displayUrl)
 
-    const remaining = photos.filter((p) => p.key !== itemToRemove.key)
-    const reordered = remaining.map((p, index) => ({ ...p, sortOrder: index }))
-    onPhotosChange(reordered)
+    const remaining = photos.filter((p) => p.id !== itemToRemove.id)
+    onPhotosChange(remaining)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -106,11 +124,11 @@ export function RestaurantFields({
         />
 
         <div className="grid grid-cols-3 gap-2">
-          {photos.map((photo) => (
-            <div key={photo.key} className="relative aspect-square overflow-hidden rounded-lg">
+          {photos.map((photo, index) => (
+            <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg">
               <img src={photo.displayUrl} className="h-full w-full object-cover" />
               <span className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 font-mono text-xs text-white">
-                #{photo.sortOrder + 1}
+                #{index + 1}
               </span>
               <Button
                 type="button"

@@ -12,7 +12,7 @@ import {
 } from '@/components/RestaurantFormFields'
 
 function EditRestaurantPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id: restaurantId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -32,11 +32,11 @@ function EditRestaurantPage() {
     isPending,
     error,
   } = useQuery({
-    queryKey: ['restaurant', id],
-    enabled: !!id,
+    queryKey: ['restaurant', restaurantId],
+    enabled: !!restaurantId,
     queryFn: async () => {
       const res = await client.api.restaurants[':id'].$get({
-        param: { id: id! },
+        param: { id: restaurantId! },
       })
       if (!res.ok) throw new Error('failed to get restaurant')
       return res.json()
@@ -53,10 +53,8 @@ function EditRestaurantPage() {
     })
     setNewPhotos(
       restaurant.photos.map((photo) => ({
-        key: photo.id.toString(),
+        id: photo.id,
         displayUrl: `/api/photos/${photo.filename}`,
-        sortOrder: photo.sortOrder!,
-        origin: { type: 'existing', id: photo.id },
       })),
     )
     initialized.current = true
@@ -64,10 +62,10 @@ function EditRestaurantPage() {
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!id) return
+    if (!restaurantId) return
 
     const res = await client.api.restaurants[':id'].$patch({
-      param: { id },
+      param: { id: restaurantId },
       json: {
         name: formData.name,
         genre: formData.genre,
@@ -75,48 +73,24 @@ function EditRestaurantPage() {
         memo: formData.memo,
       },
     })
-
     if (!res.ok) {
       throw new Error('failed to update restaurant')
     }
 
     if (!restaurant) return
 
-    const uploadedPhotoIds = await Promise.all(
-      newPhotos
-        .filter((p): p is DisplayPhotoItem & { origin: { type: 'new' } } => p.origin.type === 'new')
-        .map(async (photo) => {
-          const uploadRes = await client.api.photos.$post({
-            form: { photo: photo.origin.file },
-          })
-          if (!uploadRes.ok) throw new Error('failed to upload photo')
-          const uploadData = await uploadRes.json()
-          return uploadData.id
-        }),
-    )
-
-    const desired = [
-      ...newPhotos
-        .filter(
-          (p): p is DisplayPhotoItem & { origin: { type: 'existing' } } =>
-            p.origin.type === 'existing',
-        )
-        .map((p) => p.origin.id),
-      ...uploadedPhotoIds,
-    ].map((photoId, index) => ({ id: photoId, sortOrder: index }))
-
     const setRes = await client.api.restaurants[':id'].photos.$put({
-      param: { id },
-      json: desired,
+      param: { id: restaurantId },
+      json: newPhotos.map((photo, index) => ({ id: photo.id, sortOrder: index })),
     })
     if (!setRes.ok) throw new Error('failed to set restaurant photos')
 
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['restaurant', id] }),
+      queryClient.invalidateQueries({ queryKey: ['restaurant', restaurantId] }),
       queryClient.invalidateQueries({ queryKey: ['restaurants'] }),
     ])
 
-    navigate(`/restaurants/${id}`)
+    navigate(`/restaurants/${restaurantId}`)
   }
 
   if (isPending) return <div>読み込み中...</div>

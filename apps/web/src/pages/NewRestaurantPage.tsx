@@ -29,25 +29,10 @@ function NewRestaurantPage() {
       if (!res.ok) throw new Error('failed to create')
       const data = await res.json()
 
-      const uploadedPhotoIds = await Promise.all(
-        photos
-          .filter(
-            (p): p is DisplayPhotoItem & { origin: { type: 'new' } } => p.origin.type === 'new',
-          )
-          .map(async (photo) => {
-            const uploadRes = await client.api.photos.$post({
-              form: { photo: photo.origin.file },
-            })
-            if (!uploadRes.ok) throw new Error('failed to upload photo')
-            const uploadData = await uploadRes.json()
-            return uploadData.id
-          }),
-      )
-
-      if (uploadedPhotoIds.length > 0) {
+      if (photos.length > 0) {
         const setRes = await client.api.restaurants[':id'].photos.$put({
           param: { id: data.id.toString() },
-          json: uploadedPhotoIds.map((id, index) => ({ id, sortOrder: index })),
+          json: photos.map((photo, index) => ({ id: photo.id, sortOrder: index })),
         })
         if (!setRes.ok) throw new Error('failed to set restaurant photos')
       }
