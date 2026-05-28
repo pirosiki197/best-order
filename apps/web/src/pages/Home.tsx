@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
@@ -6,10 +6,15 @@ import { Search } from 'lucide-react'
 import RestaurantCard from '@/components/RestaurantCard'
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { client } from '@/lib/api'
 
 function Home() {
   const [query, setQuery] = useState('')
+  const [sortMode, setSortMode] = useState<'recent' | 'near'>('recent')
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+
   const { data, isPending, error } = useQuery({
     queryKey: ['restaurants'],
     queryFn: async () => {
@@ -19,23 +24,96 @@ function Home() {
     },
   })
 
-  if (isPending) return <div>検索中...</div>
-  if (error) return <div>エラー発生！</div>
+  useEffect(() => {
+    if (location || !navigator.geolocation) return
 
-  const normalizedQuery = query.trim().toLowerCase()
-  let filtered = data.result
-  if (normalizedQuery) {
-    const nameMatches = data.result.filter((r) => r.name.toLowerCase().includes(normalizedQuery))
-    const seen = new Set(nameMatches.map((r) => r.id))
-    const genreMatches = data.result.filter(
-      (r) => !seen.has(r.id) && r.genre.toLowerCase().includes(normalizedQuery),
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+      },
+      () => {
+        // ignore background errors; show message only on explicit toggle
+      },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 },
     )
-    genreMatches.forEach((r) => seen.add(r.id))
-    const memoMatches = data.result.filter(
-      (r) => !seen.has(r.id) && r.memo.toLowerCase().includes(normalizedQuery),
+  }, [location])
+
+  const handleSortChange = (mode: 'recent' | 'near') => {
+    setLocationError(null)
+
+    if (mode === 'recent') {
+      setSortMode('recent')
+      return
+    }
+    if (location) {
+      setSortMode('near')
+      return
+    }
+
+    if (!navigator.geolocation) {
+      setLocationError('位置情報を取得できませんでした')
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+        setSortMode('near')
+      },
+      () => setLocationError('位置情報を取得できませんでした'),
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 },
     )
-    filtered = [...nameMatches, ...genreMatches, ...memoMatches]
   }
+
+  const getDistanceScore = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const meanLatRad = (((lat1 + lat2) / 2) * Math.PI) / 180
+    const dx = (lon2 - lon1) * Math.cos(meanLatRad)
+    const dy = lat2 - lat1
+    return dx * dx + dy * dy
+  }
+
+  const getFilteredAndSortedRestaurants = () => {
+    if (!data?.result) return []
+
+    const normalizedQuery = query.trim().toLowerCase()
+
+    const itemsWithScore = data.result
+      .map((r) => {
+        if (!normalizedQuery) return { r, score: 1 }
+        if (r.name.toLowerCase().includes(normalizedQuery)) return { r, score: 3 }
+        if (r.genre.toLowerCase().includes(normalizedQuery)) return { r, score: 2 }
+        if (r.memo.toLowerCase().includes(normalizedQuery)) return { r, score: 1 }
+        return { r, score: 0 }
+      })
+      .filter((item) => item.score > 0)
+
+    return itemsWithScore
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score
+        if (sortMode === 'near' && location) {
+          const distA = getDistanceScore(
+            location.latitude,
+            location.longitude,
+            a.r.latitude,
+            a.r.longitude,
+          )
+          const distB = getDistanceScore(
+            location.latitude,
+            location.longitude,
+            b.r.latitude,
+            b.r.longitude,
+          )
+          return distA - distB
+        }
+        return new Date(b.r.createdAt).getTime() - new Date(a.r.createdAt).getTime()
+      })
+      .map((item) => item.r)
+  }
+
+  const filtered = getFilteredAndSortedRestaurants()
+
+  if (isPending) return <div>検索中...</div>
+  if (error || !data) return <div>エラー発生！</div>
 
   return (
     <main className="p-3">
@@ -47,7 +125,7 @@ function Home() {
         </Empty>
       ) : (
         <>
-          <div className="mx-3 mb-3">
+          <div className="mx-3 mb-3 flex flex-col gap-2">
             <div className="relative">
               <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
@@ -58,6 +136,24 @@ function Home() {
                 className="pl-9"
               />
             </div>
+            <div className="flex items-center gap-2">
+              <ToggleGroup
+                type="single"
+                value={sortMode}
+                variant="outline"
+                spacing={0}
+                aria-label="並び替え"
+                onValueChange={(value) => {
+                  if (value === 'recent' || value === 'near') {
+                    handleSortChange(value)
+                  }
+                }}
+              >
+                <ToggleGroupItem value="recent">新しい順</ToggleGroupItem>
+                <ToggleGroupItem value="near">近い順</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            {locationError ? <p className="text-destructive text-sm">{locationError}</p> : null}
           </div>
           {filtered.length === 0 ? (
             <Empty>

@@ -59,6 +59,9 @@ const restaurantsRouter = new Hono<Env>()
         genre: restaurants.genre,
         rating: restaurants.rating,
         memo: restaurants.memo,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
+        createdAt: restaurants.createdAt,
         mainPhotoFilename: restaurantPhotos.filename,
       })
       .from(restaurants)
