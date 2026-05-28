@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
@@ -19,26 +19,23 @@ function Home() {
     },
   })
 
-  const filtered = useMemo(() => {
-    if (!data?.result) return []
-
-    const normalizedQuery = query.trim().toLowerCase()
-    if (!normalizedQuery) return data.result
-
-    return data.result
-      .map((r) => {
-        if (r.name.toLowerCase().includes(normalizedQuery)) return { r, score: 3 }
-        if (r.genre.toLowerCase().includes(normalizedQuery)) return { r, score: 2 }
-        if (r.memo.toLowerCase().includes(normalizedQuery)) return { r, score: 1 }
-        return { r, score: 0 }
-      })
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map((item) => item.r)
-  }, [query, data?.result])
-
   if (isPending) return <div>検索中...</div>
   if (error) return <div>エラー発生！</div>
+
+  const normalizedQuery = query.trim().toLowerCase()
+  let filtered = data.result
+  if (normalizedQuery) {
+    const nameMatches = data.result.filter((r) => r.name.toLowerCase().includes(normalizedQuery))
+    const seen = new Set(nameMatches.map((r) => r.id))
+    const genreMatches = data.result.filter(
+      (r) => !seen.has(r.id) && r.genre.toLowerCase().includes(normalizedQuery),
+    )
+    genreMatches.forEach((r) => seen.add(r.id))
+    const memoMatches = data.result.filter(
+      (r) => !seen.has(r.id) && r.memo.toLowerCase().includes(normalizedQuery),
+    )
+    filtered = [...nameMatches, ...genreMatches, ...memoMatches]
+  }
 
   return (
     <main className="p-3">
