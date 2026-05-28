@@ -82,7 +82,7 @@ function RestaurantPage() {
 
       <div className="m-3 flex flex-col gap-3">
         <div className="bg-muted rounded-lg">
-          <p className="text-muted-foreground p-3 text-sm">{restaurant.memo}</p>
+          <p className="text-muted-foreground p-3 text-sm whitespace-pre-wrap">{restaurant.memo}</p>
         </div>
 
         <Button asChild variant={'outline'}>
