@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { client } from '@/lib/api'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -20,8 +20,7 @@ function RestaurantPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const queryClient = useQueryClient()
 
   const {
     data: restaurant,
@@ -40,26 +39,21 @@ function RestaurantPage() {
     },
   })
 
-  const handleDelete = async () => {
-    if (!id) return
-    setIsDeleting(true)
-    setDeleteError(null)
-    try {
-      const res = await client.api.restaurants[':id'].$delete({
-        param: { id },
-      })
-      if (!res.ok) {
-        throw new Error('failed to delete restaurant')
-      }
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.restaurants[':id'].$delete({ param: { id: id! } })
+      if (!res.ok) throw new Error('failed to delete')
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['restaurants'] })
       setDeleteOpen(false)
       navigate('/')
-    } catch (err) {
+    },
+    onError: (err) => {
       console.error(err)
-      setDeleteError('削除に失敗しました。時間をおいて再度お試しください。')
-    } finally {
-      setIsDeleting(false)
-    }
-  }
+      alert('削除に失敗しました')
+    },
+  })
 
   if (isPending) return <div>読み込み中...</div>
   if (error) return <div>エラー発生!</div>
@@ -124,7 +118,6 @@ function RestaurantPage() {
           open={deleteOpen}
           onOpenChange={(open) => {
             setDeleteOpen(open)
-            if (open) setDeleteError(null)
           }}
         >
           <DialogTrigger asChild>
@@ -140,14 +133,20 @@ function RestaurantPage() {
                 写真も含めて削除されます。この操作は取り消せません。
               </DialogDescription>
             </DialogHeader>
-            {deleteError && <p className="text-destructive text-sm">{deleteError}</p>}
+            {deleteMutation.isError && (
+              <p className="text-destructive text-sm">エラーが発生しました</p>
+            )}
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline" disabled={isDeleting}>
+                <Button variant="outline" disabled={deleteMutation.isPending}>
                   キャンセル
                 </Button>
               </DialogClose>
-              <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              <Button
+                variant="destructive"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+              >
                 削除する
               </Button>
             </DialogFooter>

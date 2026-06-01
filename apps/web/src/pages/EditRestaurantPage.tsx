@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { client } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ function EditRestaurantPage() {
 
   const {
     data: restaurant,
-    isPending,
+    isPending: isFetching,
     error,
   } = useQuery({
     queryKey: ['restaurant', restaurantId],
@@ -60,40 +60,52 @@ function EditRestaurantPage() {
     initialized.current = true
   }, [restaurant])
 
+  const updateMutation = useMutation({
+    mutationFn: async (variables: {
+      id: string
+      data: RestaurantEditableFormData
+      photos: DisplayPhotoItem[]
+    }) => {
+      const res = await client.api.restaurants[':id'].$patch({
+        param: { id: variables.id },
+        json: {
+          name: variables.data.name,
+          genre: variables.data.genre,
+          rating: variables.data.rating,
+          memo: variables.data.memo,
+        },
+      })
+      if (!res.ok) throw new Error('failed to update restaurant')
+
+      const photoRes = await client.api.restaurants[':id'].photos.$put({
+        param: { id: variables.id },
+        json: variables.photos.map((photo, index) => ({
+          id: photo.id,
+          sortOrder: index,
+        })),
+      })
+      if (!photoRes.ok) throw new Error('failed to set restaurant photos')
+    },
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['restaurant', variables.id] }),
+        queryClient.invalidateQueries({ queryKey: ['restaurants'] }),
+      ])
+      navigate(`/restaurants/${variables.id}`)
+    },
+    onError: (error) => {
+      console.error(error)
+    },
+  })
+
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!restaurantId) return
 
-    const res = await client.api.restaurants[':id'].$patch({
-      param: { id: restaurantId },
-      json: {
-        name: formData.name,
-        genre: formData.genre,
-        rating: formData.rating,
-        memo: formData.memo,
-      },
-    })
-    if (!res.ok) {
-      throw new Error('failed to update restaurant')
-    }
-
-    if (!restaurant) return
-
-    const setRes = await client.api.restaurants[':id'].photos.$put({
-      param: { id: restaurantId },
-      json: newPhotos.map((photo, index) => ({ id: photo.id, sortOrder: index })),
-    })
-    if (!setRes.ok) throw new Error('failed to set restaurant photos')
-
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['restaurant', restaurantId] }),
-      queryClient.invalidateQueries({ queryKey: ['restaurants'] }),
-    ])
-
-    navigate(`/restaurants/${restaurantId}`)
+    updateMutation.mutate({ id: restaurantId, data: formData, photos: newPhotos })
   }
 
-  if (isPending) return <div>読み込み中...</div>
+  if (isFetching) return <div>読み込み中...</div>
   if (error) return <div>エラー発生!</div>
 
   return (
@@ -124,7 +136,9 @@ function EditRestaurantPage() {
                 <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                   キャンセル
                 </Button>
-                <Button type="submit">更新</Button>
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  更新
+                </Button>
               </div>
             </FieldGroup>
           </FieldSet>
