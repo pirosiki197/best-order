@@ -126,7 +126,7 @@ export function RestaurantFields({
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo, index) => (
             <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg">
-              <img src={photo.displayUrl} className="h-full w-full object-cover" />
+              <img src={photo.displayUrl} className="absolute inset-0 h-full w-full object-cover" />
               <span className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 font-mono text-xs text-white">
                 #{index + 1}
               </span>
@@ -145,7 +145,7 @@ export function RestaurantFields({
             htmlFor={fileInputId}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
-            className="border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/60 aspect-square w-full cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
+            className="border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/60 aspect-square cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all"
           >
             <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-1.5">
               <Camera />
