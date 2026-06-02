@@ -86,7 +86,9 @@ const restaurantsRouter = new Hono<Env>()
     const restaurantDetail = await db.query.restaurants.findFirst({
       where: eq(restaurants.id, id),
       with: {
-        photos: true,
+        photos: {
+          orderBy: (photos, { asc }) => [asc(photos.sortOrder)],
+        },
       },
     })
 
@@ -94,7 +96,16 @@ const restaurantsRouter = new Hono<Env>()
       return c.json({ message: 'Restaurant not found' }, 404)
     }
 
-    return c.json(restaurantDetail)
+    const responseData = {
+      ...restaurantDetail,
+      photos: restaurantDetail.photos.map((photo) => ({
+        ...photo,
+        restaurantId: photo.restaurantId!,
+        sortOrder: photo.sortOrder!,
+      })),
+    }
+
+    return c.json(responseData)
   })
   .patch(
     '/:id',
